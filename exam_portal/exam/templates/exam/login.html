@@ -1,8 +1,3 @@
-from django.shortcuts import render
-
-def home(request):
-    return render(request, 'home.html')  # Create home.html in templates folder
-<!-- templates/login.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,20 +5,13 @@ def home(request):
 </head>
 <body>
     <h2>Login Page</h2>
-
-    {% if messages %}
-        {% for message in messages %}
-            <p style="color:red">{{ message }}</p>
-        {% endfor %}
-    {% endif %}
-
     <form method="post">
         {% csrf_token %}
         <label>Username:</label><br>
         <input type="text" name="username"><br><br>
         <label>Password:</label><br>
         <input type="password" name="password"><br><br>
-        <button type="submit">Login</button>
+        <input type="submit" value="Login">
     </form>
 </body>
 </html>
