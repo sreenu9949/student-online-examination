@@ -1,17 +1,133 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+  <meta charset="UTF-8">
+  <title>Student Online Examination - Login</title>
+  <style>
+    body {
+      background: #0d0d0d;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      padding: 40px 30px;
+      border-radius: 10px;
+      width: 360px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+    }
+
+    .login-container h2 {
+      margin-bottom: 20px;
+      color: #3897f0;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      background-color: #2c2c2c;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #fff;
+    }
+
+    input::placeholder {
+      color: #aaa;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 15px;
+      color: #ccc;
+    }
+
+    .remember-me label {
+      cursor: pointer;
+    }
+
+    button {
+      background-color: #3897f0;
+      color: white;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .links {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .links a {
+      color: #3897f0;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+
+    .otp-login {
+      margin-top: 15px;
+    }
+
+    .otp-login a {
+      color: #ffca28;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .error {
+      color: red;
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 <body>
-    <h2>Login Page</h2>
-    <form method="post">
-        {% csrf_token %}
-        <label>Username:</label><br>
-        <input type="text" name="username"><br><br>
-        <label>Password:</label><br>
-        <input type="password" name="password"><br><br>
-        <input type="submit" value="Login">
+  <div class="login-container">
+    <h2>Student Online Examination</h2>
+
+    {% if messages %}
+      {% for message in messages %}
+        <p class="error">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+      {% csrf_token %}
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+
+      <div class="remember-me">
+        <label><input type="checkbox" name="remember"> Remember me</label>
+        <a href="#">Forgot password?</a>
+      </div>
+
+      <button type="submit">Log in</button>
     </form>
+
+    <div class="otp-login">
+      <a href="{% url 'otp_login' %}">Login with OTP</a>
+    </div>
+
+    <div class="links">
+      Don't have an account? <a href="{% url 'register' %}">Register</a>
+    </div>
+
+  </div>
 </body>
 </html>
