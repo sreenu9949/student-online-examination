@@ -1,55 +1,38 @@
+# exam/views.py
+
 from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.contrib.auth.models import User
 from .models import Profile
+from .forms import RegistrationForm
+import pyotp
+import qrcode
+import io
 import random
 
 # ---------------------------
 # Register View
 # ---------------------------
-def register_view(request):
+def register(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        role = request.POST.get('role')
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])  # Hash password
+            user.save()
 
-        # 1. Validation
-        if not all([username, email, password1, password2, role]):
-            messages.error(request, "All fields are required.")
-            return redirect('register')
-
-        if password1 != password2:
-            messages.error(request, "Passwords do not match.")
-            return redirect('register')
-
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already taken.")
-            return redirect('register')
-
-        if User.objects.filter(email=email).exists():
-            messages.error(request, "Email already in use.")
-            return redirect('register')
-
-        # 2. Create user
-        user = User.objects.create_user(username=username, email=email, password=password1)
-
-        # 3. Create Profile safely
-        try:
+            # Save profile with role
+            role = form.cleaned_data['role']
             Profile.objects.create(user=user, role=role)
-        except Exception as e:
-            user.delete()  # Rollback user creation if profile fails
-            messages.error(request, f"Failed to create profile: {str(e)}")
-            return redirect('register')
 
-        messages.success(request, "Account created successfully. You can now log in.")
-        return redirect('login')
-
-    return render(request, 'exam/register.html')
-
+            login(request, user)
+            return redirect('google_otp_setup')  # Your QR code view
+    else:
+        form = RegistrationForm()
+    return render(request, 'register.html', {'form': form})
 
 
 # ---------------------------
@@ -62,14 +45,17 @@ def verify_otp_view(request):
         username = request.session.get('username')
         otp_type = request.session.get('otp_type')
 
-        if otp_input == stored_otp:
+        if otp_input == stored_otp and username:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                messages.error(request, "User not found")
+                return redirect('login')
+
             if otp_type == 'register':
-                # ✅ Registration success, redirect to login
                 messages.success(request, "OTP verified. You can now login.")
                 return redirect('login')
             elif otp_type == 'login':
-                # ✅ OTP login, now authenticate
-                user = User.objects.get(username=username)
                 login(request, user)
                 role = user.profile.role
                 if role == 'student':
@@ -84,7 +70,7 @@ def verify_otp_view(request):
 
 
 # ---------------------------
-# Login View (username/password)
+# Login View
 # ---------------------------
 def login_view(request):
     if request.method == "POST":
@@ -92,19 +78,28 @@ def login_view(request):
         password = request.POST.get("password")
         user = authenticate(request, username=username, password=password)
         if user:
-            login(request, user)
-            role = user.profile.role
-            if role == 'student':
-                return redirect('student_dashboard')
-            elif role == 'invigilator':
-                return redirect('invigilator_dashboard')
+            otp = str(random.randint(100000, 999999))
+            request.session['otp'] = otp
+            request.session['username'] = username
+            request.session['otp_type'] = 'login'
+
+            send_mail(
+                subject="Your Exam Portal OTP",
+                message=f"Your OTP is: {otp}",
+                from_email="youremail@example.com",
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+
+            messages.info(request, f"OTP sent to {user.email}")
+            return redirect('verify_otp')
         else:
             messages.error(request, "Invalid credentials")
     return render(request, "exam/login.html")
 
 
 # ---------------------------
-# OTP Login View
+# OTP Login View (username only)
 # ---------------------------
 def otp_login_view(request):
     if request.method == "POST":
@@ -123,7 +118,7 @@ def otp_login_view(request):
         send_mail(
             subject="Your Exam Portal OTP",
             message=f"Your OTP is: {otp}",
-            from_email="youremail@example.com",  # ✅ Make sure email config is correct
+            from_email="youremail@example.com",
             recipient_list=[user.email],
             fail_silently=False,
         )
@@ -135,19 +130,21 @@ def otp_login_view(request):
 
 
 # ---------------------------
-# Student Dashboard
+# Dashboard Views
 # ---------------------------
+@login_required
+def dashboard_view(request):
+    return render(request, 'exam/dashboard.html')
+
+@login_required
 def student_dashboard_view(request):
-    if not request.user.is_authenticated or request.user.profile.role != 'student':
+    if request.user.profile.role != 'student':
         return redirect('login')
     return render(request, 'exam/student_dashboard.html')
 
-
-# ---------------------------
-# Invigilator Dashboard
-# ---------------------------
+@login_required
 def invigilator_dashboard_view(request):
-    if not request.user.is_authenticated or request.user.profile.role != 'invigilator':
+    if request.user.profile.role != 'invigilator':
         return redirect('login')
     return render(request, 'exam/invigilator_dashboard.html')
 

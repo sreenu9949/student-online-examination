@@ -1,0 +1,6 @@
+<h2>Enter Google Authenticator OTP</h2>
+<form method="POST">
+    {% csrf_token %}
+    <input type="text" name="otp" placeholder="6-digit code" required>
+    <button type="submit">Verify OTP</button>
+</form>

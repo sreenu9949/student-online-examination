@@ -1,0 +1,9 @@
+<h2>Setup Google Authenticator</h2>
+<p>Scan the QR code using Google Authenticator app:</p>
+<img src="data:image/png;base64,{{ qr_code|safe }}" alt="QR Code">
+<form method="POST">
+    {% csrf_token %}
+    <label>Enter OTP:</label>
+    <input type="text" name="otp" required>
+    <button type="submit">Verify</button>
+</form>
