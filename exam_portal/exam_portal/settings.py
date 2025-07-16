@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'exam',
     'import_export',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -134,6 +135,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'your_email@gmail.com'
 EMAIL_HOST_PASSWORD = 'your_app_password'
+
 
 
 JAZZMIN_SETTINGS = {

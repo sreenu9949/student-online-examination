@@ -1,100 +1,128 @@
+{% load widget_tweaks %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Register</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .strength {
-      height: 8px;
-      margin-top: 5px;
-    }
-    .strength.weak {
-      background-color: red;
-      width: 33%;
-    }
-    .strength.medium {
-      background-color: orange;
-      width: 66%;
-    }
-    .strength.strong {
-      background-color: green;
-      width: 100%;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Register | Exam Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .register-container {
+            margin-top: 50px;
+        }
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        .card-img-left {
+            background: url('https://source.unsplash.com/600x800/?education,student') center/cover no-repeat;
+            border-top-left-radius: 20px;
+            border-bottom-left-radius: 20px;
+        }
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #007bff;
+        }
+        .strength {
+            height: 6px;
+            border-radius: 4px;
+            background-color: #dee2e6;
+        }
+        .strength.weak { background-color: #dc3545; width: 33%; }
+        .strength.medium { background-color: #ffc107; width: 66%; }
+        .strength.strong { background-color: #28a745; width: 100%; }
+    </style>
 </head>
 <body>
-<div class="container mt-5">
-  <h2 class="mb-4">Register (Student / Invigilator)</h2>
-  <form method="POST" novalidate>
-    {% csrf_token %}
-    {% if form.errors %}
-      <div class="alert alert-danger">{{ form.errors }}</div>
-    {% endif %}
+<div class="container register-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card overflow-hidden">
+                <div class="row g-0">
+                    <!-- Left Image -->
+                    <div class="col-md-6 d-none d-md-block card-img-left"></div>
 
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        {{ form.first_name.label_tag }} {{ form.first_name }}
-      </div>
-      <div class="col-md-6 mb-3">
-        {{ form.last_name.label_tag }} {{ form.last_name }}
-      </div>
+                    <!-- Right Form -->
+                    <div class="col-md-6 p-5">
+                        <h3 class="mb-4 text-center">Create Your Exam Portal Account</h3>
+
+                        <form method="POST" novalidate>
+                            {% csrf_token %}
+
+                            <!-- Username -->
+                            <div class="form-floating mb-3">
+                                {{ form.username|add_class:"form-control" }}
+                                <label for="{{ form.username.id_for_label }}">Username</label>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="form-floating mb-3">
+                                {{ form.email|add_class:"form-control" }}
+                                <label for="{{ form.email.id_for_label }}">Email address</label>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label for="id_password" class="form-label">Password</label>
+                                <input type="password" name="password" id="id_password" class="form-control" placeholder="Enter a strong password" required>
+                                <div id="strengthBar" class="strength mt-2"></div>
+                                <small class="text-muted">Use uppercase, numbers, and symbols for a strong password.</small>
+                            </div>
+
+                            <!-- Role -->
+                            <div class="form-group mb-4">
+                                <label for="id_role" class="form-label">Select Role</label>
+                                <select name="role" id="id_role" class="form-select" required>
+                                    <option value="" disabled selected>Select your role</option>
+                                    <option value="Student">Student</option>
+                                    <option value="Invigilator">Invigilator</option>
+                                </select>
+                            </div>
+
+                            <!-- Submit -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">Register</button>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+                            </div>
+                        </form>
+
+                    </div> <!-- Right Col End -->
+                </div> <!-- Row End -->
+            </div> <!-- Card End -->
+        </div>
     </div>
-
-    <div class="mb-3">
-      {{ form.email.label_tag }} {{ form.email }}
-    </div>
-
-    <div class="mb-3">
-      {{ form.username.label_tag }} {{ form.username }}
-    </div>
-
-    <div class="mb-3">
-      {{ form.password.label_tag }} 
-      {{ form.password }}
-      <div id="strengthBar" class="strength"></div>
-    </div>
-
-    <div class="mb-3">
-      <label for="role" class="form-label">Register As</label>
-      <select class="form-select" name="role" required>
-        <option value="">-- Select Role --</option>
-        <option value="student">Student</option>
-        <option value="invigilator">Invigilator</option>
-      </select>
-    </div>
-
-    <hr>
-    <h5>Google Authenticator Setup</h5>
-    <p>After registration, you’ll be prompted to scan a QR code to enable 2FA (Google Authenticator).</p>
-
-    <button type="submit" class="btn btn-primary">Register</button>
-  </form>
 </div>
 
+<!-- Password Strength Script -->
 <script>
-  const passwordInput = document.getElementById("id_password");
-  const strengthBar = document.getElementById("strengthBar");
+    const passwordInput = document.getElementById("id_password");
+    const strengthBar = document.getElementById("strengthBar");
 
-  if (passwordInput && strengthBar) {
-    passwordInput.addEventListener("input", function() {
-      const val = passwordInput.value;
-      let strength = 0;
-      if (val.length > 5) strength++;
-      if (val.match(/[A-Z]/)) strength++;
-      if (val.match(/[0-9]/)) strength++;
-      if (val.match(/[^a-zA-Z0-9]/)) strength++;
+    passwordInput.addEventListener("input", () => {
+        const val = passwordInput.value;
+        let strength = 0;
+        if (val.length >= 6) strength++;
+        if (/[A-Z]/.test(val)) strength++;
+        if (/[0-9]/.test(val)) strength++;
+        if (/[^A-Za-z0-9]/.test(val)) strength++;
 
-      strengthBar.className = 'strength';
-      if (strength <= 1) {
-        strengthBar.classList.add("weak");
-      } else if (strength === 2 || strength === 3) {
-        strengthBar.classList.add("medium");
-      } else {
-        strengthBar.classList.add("strong");
-      }
+        strengthBar.className = 'strength';
+        if (strength <= 1) strengthBar.classList.add('weak');
+        else if (strength <= 3) strengthBar.classList.add('medium');
+        else strengthBar.classList.add('strong');
     });
-  }
 </script>
+
 </body>
 </html>
