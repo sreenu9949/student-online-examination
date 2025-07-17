@@ -1,3 +1,5 @@
+# exam/apps.py
+
 from django.apps import AppConfig
 
 class ExamConfig(AppConfig):
@@ -5,4 +7,4 @@ class ExamConfig(AppConfig):
     name = 'exam'
 
     def ready(self):
-        import exam.signals  # for automatic profile creation
+        import exam.signals

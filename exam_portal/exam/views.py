@@ -4,13 +4,14 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.contrib.auth.decorators import login_required
-from .forms import RegistrationForm
-from .models import Profile
+from .forms import CustomUserCreationForm
+from .models import Profile, Exam, NewExamResult
 import pyotp
 import random
 import time
-
-
+import qrcode
+import base64
+from io import BytesIO
 
 OTP_EXPIRY_SECONDS = 300  # 5 minutes
 OTP_MAX_ATTEMPTS = 3
@@ -21,44 +22,45 @@ OTP_MAX_ATTEMPTS = 3
 def home_redirect(request):
     return redirect('login')
 
+
 # ---------------------------
 # Register View
 # ---------------------------
-
 def register_view(request):
     if request.method == 'POST':
-        form = RegistrationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
-            user.is_active = False  # Require OTP verification
+            user.is_active = False
             user.save()
 
-            # Save role in Profile
-            role = form.cleaned_data.get('role')
-            Profile.objects.create(user=user, role=role)
+            # Save role into profile (created via signal)
+            user.profile.role = form.cleaned_data['role']
+            user.profile.save()
 
-            # Generate and send OTP
+            # Generate OTP
             otp = str(random.randint(100000, 999999))
             request.session['otp'] = otp
             request.session['username'] = user.username
             request.session['otp_time'] = int(time.time())
             request.session['otp_attempts'] = OTP_MAX_ATTEMPTS
 
+            # Send OTP via email
             send_mail(
-                subject="Exam Portal Registration OTP",
+                subject="Exam Portal Email Verification OTP",
                 message=f"Your OTP is: {otp}",
                 from_email="noreply@exam.com",
                 recipient_list=[user.email],
                 fail_silently=False,
             )
 
-            messages.info(request, f"OTP sent to {user.email}. Please verify to activate your account.")
+            messages.info(request, f"OTP sent to {user.email}")
             return redirect('verify_otp')
     else:
-        form = RegistrationForm()
+        form = CustomUserCreationForm()
+    return render(request, 'register.html', {'form': form})
 
-    return render(request, 'exam/register.html', {'form': form})
 
 # ---------------------------
 # OTP Verification View
@@ -97,6 +99,7 @@ def verify_otp_view(request):
 
     return render(request, 'exam/verify_otp.html')
 
+
 # ---------------------------
 # Google Authenticator Setup View
 # ---------------------------
@@ -113,10 +116,19 @@ def google_otp_setup(request):
     totp = pyotp.TOTP(otp_secret)
     otp_uri = totp.provisioning_uri(name=user.username, issuer_name="Exam Portal")
 
-    return render(request, 'exam/google_otp_setup.html', {'otp_uri': otp_uri})
+    qr = qrcode.make(otp_uri)
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    img_str = base64.b64encode(buffer.getvalue()).decode()
+
+    return render(request, 'exam/google_otp_setup.html', {
+        'qr_code_base64': img_str,
+        'show_continue': True
+    })
+
 
 # ---------------------------
-# Login View (password login)
+# Login View
 # ---------------------------
 def login_view(request):
     if request.method == 'POST':
@@ -130,8 +142,9 @@ def login_view(request):
             messages.error(request, "Invalid credentials or inactive account.")
     return render(request, 'exam/login.html')
 
+
 # ---------------------------
-# Google Authenticator Verification View
+# Google OTP Verify
 # ---------------------------
 def google_otp_verify(request):
     if request.method == 'POST':
@@ -160,8 +173,23 @@ def google_otp_verify(request):
 
     return render(request, 'exam/google_otp_verify.html')
 
+
+@login_required
+def take_exam_view(request, exam_id):
+    exam = Exam.objects.get(id=exam_id)
+
+    if request.method == 'POST':
+        # Placeholder: You can collect answers and calculate scores here
+        score = int(request.POST.get('score', 0))  # Assume simple manual input for demo
+        NewExamResult.objects.create(user=request.user, exam=exam, score=score)
+        messages.success(request, "Exam submitted successfully.")
+        return redirect('student_dashboard')
+
+    return render(request, 'exam/take_exam.html', {'exam': exam})
+
+
 # ---------------------------
-# OTP Login View (username-only login)
+# OTP Login View (email only)
 # ---------------------------
 def otp_login_view(request):
     if request.method == 'POST':
@@ -192,6 +220,7 @@ def otp_login_view(request):
 
     return render(request, "exam/otp_login.html")
 
+
 # ---------------------------
 # Student Dashboard
 # ---------------------------
@@ -200,6 +229,7 @@ def student_dashboard_view(request):
     if request.user.profile.role != 'student':
         return redirect('login')
     return render(request, 'exam/student_dashboard.html')
+
 
 # ---------------------------
 # Invigilator Dashboard
@@ -210,9 +240,22 @@ def invigilator_dashboard_view(request):
         return redirect('login')
     return render(request, 'exam/invigilator_dashboard.html')
 
+@login_required
+def view_results(request):
+    results = NewExamResult.objects.filter(user=request.user)
+    return render(request, 'exam/view_results.html', {'results': results})
+
 # ---------------------------
 # Logout
 # ---------------------------
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+
+
+# #✅ Multiple-choice question (MCQ) exam logic with auto score calculation?
+# ✅ Separate exam list page for students to choose and start?
+# ✅ Role-based dashboard view of available exams/results?
+
+# Let me know what you'd like to expand next!

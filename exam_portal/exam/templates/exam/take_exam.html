@@ -1,0 +1,16 @@
+{% extends 'exam/base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2>{{ exam.title }}</h2>
+    <p>Date: {{ exam.date }}</p>
+    <form method="POST">
+        {% csrf_token %}
+        <!-- Example score input (you can replace with MCQs/questions later) -->
+        <div class="form-group">
+            <label for="score">Enter Score (for demo):</label>
+            <input type="number" name="score" id="score" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Submit Exam</button>
+    </form>
+</div>
+{% endblock %}
